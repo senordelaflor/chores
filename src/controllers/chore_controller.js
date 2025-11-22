@@ -6,15 +6,36 @@ export default class extends Controller {
   static targets = ["checkbox", "checkIcon", "title"]
   static values = {
     id: String,
-    completed: Boolean
+    completed: Boolean,
+    isExtra: Boolean
   }
 
   connect() {
     this.updateUI()
+
+    // Listen for claim confirmation
+    window.addEventListener('app:claim-confirmed', (event) => {
+      if (event.detail.choreId === this.idValue) {
+        this.performToggle(event.detail.userId)
+      }
+    })
   }
 
-  toggle() {
-    const chore = StorageService.toggleChore(this.idValue)
+  toggle(event) {
+    if (this.isExtraValue && !this.completedValue) {
+      // If extra chore and NOT completed, request claim
+      event.preventDefault()
+      window.dispatchEvent(new CustomEvent('app:request-claim', {
+        detail: { choreId: this.idValue }
+      }))
+      return
+    }
+
+    this.performToggle()
+  }
+
+  performToggle(userId = null) {
+    const chore = StorageService.toggleChore(this.idValue, userId)
     if (chore) {
       const today = new Date().toISOString().split('T')[0]
       this.completedValue = chore.lastCompletedAt === today

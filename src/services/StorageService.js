@@ -3,6 +3,8 @@ const STORAGE_KEYS = {
   CHORES: 'chore_app_chores'
 }
 
+export const EXTRA_CHORES_ID = 'extra-chores'
+
 export class StorageService {
   static getUsers() {
     const users = localStorage.getItem(STORAGE_KEYS.USERS)
@@ -71,15 +73,17 @@ export class StorageService {
     localStorage.setItem(STORAGE_KEYS.CHORES, JSON.stringify(chores))
   }
 
-  static toggleChore(choreId) {
+  static toggleChore(choreId, completedByUserId = null) {
     const chores = this.getChores()
     const chore = chores.find(c => c.id === choreId)
     if (chore) {
       const today = new Date().toISOString().split('T')[0]
       if (chore.lastCompletedAt === today) {
         chore.lastCompletedAt = null // Uncheck
+        chore.completedBy = null
       } else {
         chore.lastCompletedAt = today // Check
+        chore.completedBy = completedByUserId
       }
       this.saveChore(chore)
       return chore

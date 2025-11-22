@@ -73,10 +73,11 @@ export default class extends Controller {
     const users = StorageService.getUsers()
 
     this.globalChoreListTarget.innerHTML = chores.map(chore => {
-      const assignedNames = users
-        .filter(u => chore.assignedUserIds.includes(u.id))
-        .map(u => u.name)
-        .join(', ')
+      const assignedNames = chore.assignedUserIds.map(id => {
+        if (id === 'extra-chores') return '✨ Extra Chores'
+        const user = users.find(u => u.id === id)
+        return user ? user.name : 'Unknown'
+      }).join(', ')
 
       const frequencyText = chore.frequency.type === 'daily'
         ? 'Daily'
@@ -126,6 +127,15 @@ export default class extends Controller {
                 </div>
               </label>
             `).join('')}
+
+            <!-- Extra Chores Option -->
+            <label class="cursor-pointer select-none">
+              <input type="checkbox" name="users" value="extra-chores" class="peer sr-only">
+              <div class="px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 peer-checked:bg-amber-100 peer-checked:text-amber-700 peer-checked:ring-2 peer-checked:ring-amber-500 transition-all text-sm font-medium flex items-center gap-2">
+                <span>✨</span>
+                Extra Chores
+              </div>
+            </label>
           </div>
         </div>
 
