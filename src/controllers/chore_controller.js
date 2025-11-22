@@ -14,11 +14,16 @@ export default class extends Controller {
     this.updateUI()
 
     // Listen for claim confirmation
-    window.addEventListener('app:claim-confirmed', (event) => {
+    this.claimHandler = (event) => {
       if (event.detail.choreId === this.idValue) {
         this.performToggle(event.detail.userId)
       }
-    })
+    }
+    window.addEventListener('app:claim-confirmed', this.claimHandler)
+  }
+
+  disconnect() {
+    window.removeEventListener('app:claim-confirmed', this.claimHandler)
   }
 
   toggle(event) {
