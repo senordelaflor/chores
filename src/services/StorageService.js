@@ -35,8 +35,24 @@ export class StorageService {
     return chores ? JSON.parse(chores) : []
   }
 
-  static getChoresForUser(userId) {
-    return this.getChores().filter(c => c.userId === userId)
+  static getChoresForUser(userId, date = new Date()) {
+    const chores = this.getChores().filter(c => c.userId === userId)
+
+    // Filter by frequency
+    const dayOfWeek = date.getDay() // 0 = Sunday, 1 = Monday, etc.
+
+    return chores.filter(chore => {
+      // Backwards compatibility for old chores (assume daily)
+      if (!chore.frequency) return true
+
+      if (chore.frequency.type === 'daily') return true
+
+      if (chore.frequency.type === 'weekly') {
+        return chore.frequency.days.includes(dayOfWeek)
+      }
+
+      return true
+    })
   }
 
   static saveChore(chore) {
@@ -73,7 +89,59 @@ export class StorageService {
 
   static resetDailyChores() {
     // This logic is implicitly handled by checking lastCompletedAt vs today
-    // But if we wanted to strictly reset state, we could do it here.
-    // For now, the UI will just check if lastCompletedAt === today.
+  }
+
+  // Helper to group chores by title (for the settings UI)
+  static getGlobalChores() {
+    const chores = this.getChores()
+    const groups = {}
+
+    chores.forEach(chore => {
+      if (!groups[chore.title]) {
+        groups[chore.title] = {
+          title: chore.title,
+          icon: chore.icon,
+          frequency: chore.frequency || { type: 'daily', days: [] },
+          assignedUserIds: []
+        }
+      }
+      groups[chore.title].assignedUserIds.push(chore.userId)
+    })
+
+    return Object.values(groups)
+  }
+
+  static saveGlobalChore(title, icon, frequency, userIds) {
+    let chores = this.getChores()
+
+    // 1. Remove existing chores with this title (to overwrite/update)
+    // NOTE: This is a simple approach. In a real app, we might want to preserve IDs
+    // to keep history, but for this scope, recreating them is fine.
+    // However, to preserve "completed" status for today, we should try to match them.
+
+    const existingChores = chores.filter(c => c.title === title)
+    chores = chores.filter(c => c.title !== title)
+
+    // 2. Create new chores for selected users
+    userIds.forEach(userId => {
+      // Try to find existing state to preserve
+      const existing = existingChores.find(c => c.userId === userId)
+
+      chores.push({
+        id: existing ? existing.id : crypto.randomUUID(),
+        userId,
+        title,
+        icon,
+        frequency,
+        lastCompletedAt: existing ? existing.lastCompletedAt : null
+      })
+    })
+
+    localStorage.setItem(STORAGE_KEYS.CHORES, JSON.stringify(chores))
+  }
+
+  static deleteGlobalChore(title) {
+    const chores = this.getChores().filter(c => c.title !== title)
+    localStorage.setItem(STORAGE_KEYS.CHORES, JSON.stringify(chores))
   }
 }

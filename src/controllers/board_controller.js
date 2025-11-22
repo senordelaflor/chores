@@ -20,10 +20,11 @@ export default class extends Controller {
     }
 
     this.element.innerHTML = users.map(user => {
-      const chores = StorageService.getChoresForUser(user.id)
+      const today = new Date()
+      const chores = StorageService.getChoresForUser(user.id, today)
       const completedCount = chores.filter(c => {
-        const today = new Date().toISOString().split('T')[0]
-        return c.lastCompletedAt === today
+        const todayStr = today.toISOString().split('T')[0]
+        return c.lastCompletedAt === todayStr
       }).length
 
       // Calculate stars (total completed chores ever? or just today?)
