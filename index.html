@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Chore Tracker</title>
+  </head>
+  <body class="bg-gray-50 h-screen w-screen overflow-hidden selection:bg-purple-100">
+    <div id="app" data-controller="app" class="h-full w-full relative flex flex-col">
+
+      <!-- Top Bar -->
+      <header class="flex justify-between items-center p-6 bg-white/50 backdrop-blur-sm border-b border-gray-100 z-10">
+        <div class="flex items-center gap-2">
+          <h1 class="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">
+            Chore Tracker
+          </h1>
+        </div>
+        <button
+          data-action="app#toggleSettings"
+          class="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-600 hover:text-purple-600"
+          aria-label="Settings">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        </button>
+      </header>
+
+      <!-- Main Board -->
+      <main
+        data-app-target="board"
+        data-controller="board"
+        class="flex-1 overflow-x-auto overflow-y-hidden p-6 flex gap-6 snap-x snap-mandatory">
+        <!-- User columns will be injected here -->
+        <div class="hidden first:flex flex-col items-center justify-center w-full h-full text-gray-400">
+          <p class="text-xl">No users yet. Tap settings to add someone!</p>
+        </div>
+      </main>
+
+      <!-- Settings View (Overlay) -->
+      <div
+        data-app-target="settings"
+        data-controller="settings"
+        class="hidden absolute inset-0 bg-white z-20 flex flex-col transition-transform duration-300 transform translate-y-full">
+
+        <header class="flex justify-between items-center p-6 border-b border-gray-100">
+          <h2 class="text-2xl font-bold text-gray-800">Settings</h2>
+          <button
+            data-action="app#toggleSettings"
+            class="p-2 rounded-full hover:bg-gray-100 text-gray-600">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6 max-w-3xl mx-auto w-full">
+          <!-- User Management -->
+          <section class="mb-12">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">Users</h3>
+            <div data-settings-target="userList" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <!-- User items -->
+            </div>
+            <form data-action="submit->settings#addUser" class="flex gap-2">
+              <input type="text" name="name" placeholder="Name" required class="flex-1 px-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500">
+              <button type="submit" class="bg-purple-600 text-white px-6 py-2 rounded-xl font-medium hover:bg-purple-700 transition-colors">Add</button>
+            </form>
+          </section>
+
+          <!-- Chore Management -->
+          <section>
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">Manage Chores</h3>
+            <div class="bg-gray-50 p-4 rounded-2xl">
+              <div class="mb-4">
+                <label class="block text-sm text-gray-500 mb-1">Select User</label>
+                <select data-settings-target="userSelect" data-action="change->settings#loadChores" class="w-full px-4 py-2 rounded-xl border border-gray-200 bg-white">
+                  <!-- Options populated by JS -->
+                </select>
+              </div>
+
+              <div data-settings-target="choreList" class="space-y-2 mb-4">
+                <!-- Chore items -->
+              </div>
+
+              <form data-action="submit->settings#addChore" class="flex gap-2">
+                <input type="text" name="title" placeholder="New Chore (e.g. Brush Teeth)" required class="flex-1 px-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <button type="submit" class="bg-purple-600 text-white px-6 py-2 rounded-xl font-medium hover:bg-purple-700 transition-colors">Add</button>
+              </form>
+            </div>
+          </section>
+        </div>
+      </div>
+
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
