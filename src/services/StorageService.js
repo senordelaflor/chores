@@ -103,6 +103,7 @@ export class StorageService {
     chores.forEach(chore => {
       if (!groups[chore.title]) {
         groups[chore.title] = {
+          id: chore.id, // Use the first chore's ID as the group identifier
           title: chore.title,
           icon: chore.icon,
           frequency: chore.frequency || { type: 'daily', days: [] },
@@ -118,30 +119,75 @@ export class StorageService {
   static saveGlobalChore(title, icon, frequency, userIds) {
     let chores = this.getChores()
 
-    // 1. Remove existing chores with this title (to overwrite/update)
-    // NOTE: This is a simple approach. In a real app, we might want to preserve IDs
-    // to keep history, but for this scope, recreating them is fine.
-    // However, to preserve "completed" status for today, we should try to match them.
-
     const existingChores = chores.filter(c => c.title === title)
     chores = chores.filter(c => c.title !== title)
 
-    // 2. Create new chores for selected users
     userIds.forEach(userId => {
-      // Try to find existing state to preserve
       const existing = existingChores.find(c => c.userId === userId)
-
       chores.push({
         id: existing ? existing.id : crypto.randomUUID(),
         userId,
         title,
         icon,
         frequency,
-        lastCompletedAt: existing ? existing.lastCompletedAt : null
+        lastCompletedAt: existing ? existing.lastCompletedAt : null,
+        completedBy: existing ? existing.completedBy : null
       })
     })
 
     localStorage.setItem(STORAGE_KEYS.CHORES, JSON.stringify(chores))
+  }
+
+  static updateGlobalChore(choreId, updates) {
+    let chores = this.getChores()
+
+    // 1. Find the original chore to get the old title
+    const originalChore = chores.find(c => c.id === choreId)
+    if (!originalChore) return false
+
+    const oldTitle = originalChore.title
+
+    // 2. Identify chores to keep, update, or remove
+    // We want to keep chores that are NOT related to this global chore
+    const otherChores = chores.filter(c => c.title !== oldTitle)
+
+    // Chores that ARE related
+    const relatedChores = chores.filter(c => c.title === oldTitle)
+
+    const updatedRelatedChores = []
+
+    // 3. Process updates
+    updates.assignedUserIds.forEach(userId => {
+      // Check if this user already had this chore
+      const existing = relatedChores.find(c => c.userId === userId)
+
+      if (existing) {
+        // Update existing chore
+        updatedRelatedChores.push({
+          ...existing,
+          title: updates.title,
+          frequency: updates.frequency,
+          // Preserve icon if not provided in updates (though currently UI doesn't send icon)
+          // Preserve ID and completion status
+        })
+      } else {
+        // New assignment for this user
+        updatedRelatedChores.push({
+          id: crypto.randomUUID(),
+          userId,
+          title: updates.title,
+          icon: originalChore.icon, // Use same icon as original
+          frequency: updates.frequency,
+          lastCompletedAt: null,
+          completedBy: null
+        })
+      }
+    })
+
+    // 4. Save everything back
+    const newChores = [...otherChores, ...updatedRelatedChores]
+    localStorage.setItem(STORAGE_KEYS.CHORES, JSON.stringify(newChores))
+    return true
   }
 
   static deleteGlobalChore(title) {

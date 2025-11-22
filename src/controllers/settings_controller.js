@@ -93,25 +93,45 @@ export default class extends Controller {
             <p class="text-sm text-gray-500 mt-1">Assigned to: ${assignedNames || 'No one'}</p>
             <p class="text-xs text-purple-500 font-medium mt-0.5 uppercase tracking-wide">${frequencyText}</p>
           </div>
-          <button data-action="click->settings#deleteGlobalChore" data-title="${chore.title}" class="text-gray-400 hover:text-red-500 p-2">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-            </svg>
-          </button>
+          <div class="flex items-center gap-1">
+            <button data-action="click->settings#editGlobalChore" data-chore-id="${chore.id}" class="text-gray-400 hover:text-purple-500 p-2">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+              </svg>
+            </button>
+            <button data-action="click->settings#deleteGlobalChore" data-title="${chore.title}" class="text-gray-400 hover:text-red-500 p-2">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+              </svg>
+            </button>
+          </div>
         </div>
       `
     }).join('')
 
-    // Render Add Form
-    this.renderAddForm(users)
+    // Render Add Form only if not editing (or re-render to reset if needed, but we handle that in edit/cancel)
+    if (!this.editingChoreId) {
+        this.renderAddForm(users)
+    }
   }
 
-  renderAddForm(users) {
+  renderAddForm(users, choreToEdit = null) {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    const isEditing = !!choreToEdit
+
+    const titleValue = isEditing ? choreToEdit.title : ''
+    const assignedIds = isEditing ? choreToEdit.assignedUserIds : []
+    const isDaily = isEditing ? choreToEdit.frequency.type === 'daily' : true
+    const selectedDays = isEditing && !isDaily ? choreToEdit.frequency.days : []
 
     this.choreFormTarget.innerHTML = `
       <div class="space-y-4">
-        <input type="text" name="title" placeholder="Chore Title (e.g. Clean Room)" required
+        <div class="flex items-center justify-between">
+            <h4 class="font-semibold text-gray-700">${isEditing ? 'Edit Chore' : 'Add New Chore'}</h4>
+            ${isEditing ? `<button type="button" data-action="click->settings#cancelEdit" class="text-sm text-gray-500 hover:text-gray-700">Cancel</button>` : ''}
+        </div>
+
+        <input type="text" name="title" value="${titleValue}" placeholder="Chore Title (e.g. Clean Room)" required
           class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500">
 
         <!-- Users Selection -->
@@ -120,7 +140,7 @@ export default class extends Controller {
           <div class="flex flex-wrap gap-2">
             ${users.map(user => `
               <label class="cursor-pointer select-none">
-                <input type="checkbox" name="users" value="${user.id}" class="peer sr-only" checked>
+                <input type="checkbox" name="users" value="${user.id}" class="peer sr-only" ${assignedIds.includes(user.id) ? 'checked' : ''}>
                 <div class="px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 peer-checked:bg-purple-100 peer-checked:text-purple-700 peer-checked:ring-2 peer-checked:ring-purple-500 transition-all text-sm font-medium flex items-center gap-2">
                   <span>${user.avatar}</span>
                   ${user.name}
@@ -130,7 +150,7 @@ export default class extends Controller {
 
             <!-- Extra Chores Option -->
             <label class="cursor-pointer select-none">
-              <input type="checkbox" name="users" value="extra-chores" class="peer sr-only">
+              <input type="checkbox" name="users" value="extra-chores" class="peer sr-only" ${assignedIds.includes('extra-chores') ? 'checked' : ''}>
               <div class="px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 peer-checked:bg-amber-100 peer-checked:text-amber-700 peer-checked:ring-2 peer-checked:ring-amber-500 transition-all text-sm font-medium flex items-center gap-2">
                 <span>✨</span>
                 Extra Chores
@@ -142,16 +162,16 @@ export default class extends Controller {
         <!-- Frequency -->
         <div data-controller="frequency">
           <label class="flex items-center gap-2 mb-3 cursor-pointer">
-            <input type="checkbox" name="isDaily" checked data-frequency-target="dailyCheck" data-action="change->frequency#toggleDays" class="w-5 h-5 text-purple-600 rounded focus:ring-purple-500 border-gray-300">
+            <input type="checkbox" name="isDaily" ${isDaily ? 'checked' : ''} data-frequency-target="dailyCheck" data-action="change->frequency#toggleDays" class="w-5 h-5 text-purple-600 rounded focus:ring-purple-500 border-gray-300">
             <span class="text-gray-700 font-medium">Daily Task</span>
           </label>
 
-          <div data-frequency-target="daysContainer" class="hidden pl-1">
+          <div data-frequency-target="daysContainer" class="${isDaily ? 'hidden' : ''} pl-1">
             <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Select Days</label>
             <div class="flex justify-between gap-1">
               ${days.map((day, index) => `
                 <label class="cursor-pointer">
-                  <input type="checkbox" name="days" value="${index}" class="peer sr-only">
+                  <input type="checkbox" name="days" value="${index}" class="peer sr-only" ${selectedDays.includes(index) ? 'checked' : ''}>
                   <div class="w-9 h-9 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-xs font-bold peer-checked:bg-purple-600 peer-checked:text-white transition-all border border-gray-100">
                     ${day.slice(0, 1)}
                   </div>
@@ -162,7 +182,7 @@ export default class extends Controller {
         </div>
 
         <button type="submit" class="w-full bg-purple-600 text-white py-3 rounded-xl font-bold hover:bg-purple-700 transition-colors shadow-lg shadow-purple-200">
-          Create Chore
+          ${isEditing ? 'Update Chore' : 'Create Chore'}
         </button>
       </div>
     `
@@ -197,11 +217,38 @@ export default class extends Controller {
       frequency = { type: 'weekly', days }
     }
 
-    const icons = ['🧹', '🛏️', '🧸', '🦷', '📚', '🍽️', '🪴', '🐕', '🗑️', '🧺']
-    const icon = icons[Math.floor(Math.random() * icons.length)]
+    if (this.editingChoreId) {
+        StorageService.updateGlobalChore(this.editingChoreId, {
+            title,
+            assignedUserIds: userIds,
+            frequency
+        })
+        this.editingChoreId = null
+    } else {
+        const icons = ['🧹', '🛏️', '🧸', '🦷', '📚', '🍽️', '🪴', '🐕', '🗑️', '🧺']
+        const icon = icons[Math.floor(Math.random() * icons.length)]
+        StorageService.saveGlobalChore(title, icon, frequency, userIds)
+    }
 
-    StorageService.saveGlobalChore(title, icon, frequency, userIds)
     this.renderGlobalChores()
+    this.renderAddForm(StorageService.getUsers()) // Reset form
+  }
+
+  editGlobalChore(event) {
+    const choreId = event.currentTarget.dataset.choreId
+    const chores = StorageService.getGlobalChores()
+    const chore = chores.find(c => c.id === choreId)
+
+    if (chore) {
+        this.editingChoreId = choreId
+        this.renderAddForm(StorageService.getUsers(), chore)
+        this.choreFormTarget.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
+
+  cancelEdit() {
+    this.editingChoreId = null
+    this.renderAddForm(StorageService.getUsers())
   }
 
   deleteGlobalChore(event) {

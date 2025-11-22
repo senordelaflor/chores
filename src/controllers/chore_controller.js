@@ -57,12 +57,16 @@ export default class extends Controller {
     if (this.completedValue) {
       this.checkboxTarget.classList.add('bg-green-500', 'border-green-500')
       this.checkboxTarget.classList.remove('border-gray-200')
-      this.checkIconTarget.classList.remove('scale-0')
+      if (this.hasCheckIconTarget) {
+        this.checkIconTarget.classList.remove('scale-0')
+      }
       this.titleTarget.classList.add('text-gray-400', 'line-through')
     } else {
       this.checkboxTarget.classList.remove('bg-green-500', 'border-green-500')
       this.checkboxTarget.classList.add('border-gray-200')
-      this.checkIconTarget.classList.add('scale-0')
+      if (this.hasCheckIconTarget) {
+        this.checkIconTarget.classList.add('scale-0')
+      }
       this.titleTarget.classList.remove('text-gray-400', 'line-through')
     }
   }
