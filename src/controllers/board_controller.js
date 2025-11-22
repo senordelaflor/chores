@@ -22,10 +22,27 @@ export default class extends Controller {
     const userColumns = users.map(user => {
       const today = new Date()
       const chores = StorageService.getChoresForUser(user.id, today)
-      const completedCount = chores.filter(c => {
+
+      // Calculate completed count and earned rewards
+      let completedCount = 0
+      let earnedMinutes = 0
+
+      chores.forEach(c => {
         const todayStr = today.toISOString().split('T')[0]
-        return c.lastCompletedAt === todayStr
-      }).length
+        if (c.lastCompletedAt === todayStr) {
+          completedCount++
+          earnedMinutes += (c.reward || 0)
+        }
+      })
+
+      // Add rewards from claimed extra chores
+      const extraChores = StorageService.getChoresForUser('extra-chores', today)
+      extraChores.forEach(c => {
+        const todayStr = today.toISOString().split('T')[0]
+        if (c.lastCompletedAt === todayStr && c.completedBy === user.id) {
+          earnedMinutes += (c.reward || 0)
+        }
+      })
 
       // Calculate stars (total completed chores ever? or just today?)
       // For now, let's just show today's count.
@@ -42,9 +59,16 @@ export default class extends Controller {
                 </div>
                 <div>
                   <h2 class="text-2xl font-bold text-gray-800">${user.name}</h2>
-                  <p class="text-sm text-gray-600 font-medium">
-                    ${completedCount}/${chores.length} completed
-                  </p>
+                  <div class="flex items-center gap-2">
+                    <p class="text-sm text-gray-600 font-medium">
+                      ${completedCount}/${chores.length} completed
+                    </p>
+                    ${earnedMinutes > 0 ? `
+                      <span class="px-2 py-0.5 bg-white/60 rounded-lg text-xs font-bold text-gray-700 flex items-center gap-1">
+                        📱 ${earnedMinutes}m
+                      </span>
+                    ` : ''}
+                  </div>
                 </div>
               </div>
             </div>
@@ -127,7 +151,14 @@ export default class extends Controller {
             </div>
             <div>
               <h3 class="font-semibold text-gray-800 transition-colors duration-300" data-chore-target="title">${chore.title}</h3>
-              <p class="text-xs text-gray-400 font-medium uppercase tracking-wide">${isExtra ? 'Extra' : 'Daily'}</p>
+              <div class="flex items-center gap-2">
+                <p class="text-xs text-gray-400 font-medium uppercase tracking-wide">${isExtra ? 'Extra' : 'Daily'}</p>
+                ${chore.reward > 0 ? `
+                  <span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 text-[10px] font-bold flex items-center gap-0.5">
+                    📱 ${chore.reward}m
+                  </span>
+                ` : ''}
+              </div>
             </div>
           </div>
 

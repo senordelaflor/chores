@@ -89,6 +89,7 @@ export default class extends Controller {
             <div class="flex items-center gap-2">
               <span class="text-xl">${chore.icon}</span>
               <h4 class="font-semibold text-gray-800">${chore.title}</h4>
+              ${chore.reward > 0 ? `<span class="px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 text-xs font-bold">📱 ${chore.reward}m</span>` : ''}
             </div>
             <p class="text-sm text-gray-500 mt-1">Assigned to: ${assignedNames || 'No one'}</p>
             <p class="text-xs text-purple-500 font-medium mt-0.5 uppercase tracking-wide">${frequencyText}</p>
@@ -181,6 +182,21 @@ export default class extends Controller {
           </div>
         </div>
 
+        <!-- Reward -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Reward (Screen Time):</label>
+          <div class="flex gap-2">
+            ${[0, 15, 30, 45, 60].map(mins => `
+              <label class="cursor-pointer">
+                <input type="radio" name="reward" value="${mins}" class="peer sr-only" ${(!choreToEdit && mins === 0) || (choreToEdit && (choreToEdit.reward || 0) === mins) ? 'checked' : ''}>
+                <div class="px-3 py-2 rounded-xl bg-gray-50 text-gray-500 font-medium text-sm border border-transparent peer-checked:bg-blue-50 peer-checked:text-blue-600 peer-checked:border-blue-200 transition-all">
+                  ${mins === 0 ? 'None' : `${mins}m`}
+                </div>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+
         <button type="submit" class="w-full bg-purple-600 text-white py-3 rounded-xl font-bold hover:bg-purple-700 transition-colors shadow-lg shadow-purple-200">
           ${isEditing ? 'Update Chore' : 'Create Chore'}
         </button>
@@ -217,17 +233,21 @@ export default class extends Controller {
       frequency = { type: 'weekly', days }
     }
 
+    // Get reward
+    const reward = parseInt(form.querySelector('input[name="reward"]:checked').value)
+
     if (this.editingChoreId) {
         StorageService.updateGlobalChore(this.editingChoreId, {
             title,
             assignedUserIds: userIds,
-            frequency
+            frequency,
+            reward
         })
         this.editingChoreId = null
     } else {
         const icons = ['🧹', '🛏️', '🧸', '🦷', '📚', '🍽️', '🪴', '🐕', '🗑️', '🧺']
         const icon = icons[Math.floor(Math.random() * icons.length)]
-        StorageService.saveGlobalChore(title, icon, frequency, userIds)
+        StorageService.saveGlobalChore(title, icon, frequency, userIds, reward)
     }
 
     this.renderGlobalChores()

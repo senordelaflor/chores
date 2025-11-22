@@ -107,6 +107,7 @@ export class StorageService {
           title: chore.title,
           icon: chore.icon,
           frequency: chore.frequency || { type: 'daily', days: [] },
+          reward: chore.reward || 0,
           assignedUserIds: []
         }
       }
@@ -116,7 +117,7 @@ export class StorageService {
     return Object.values(groups)
   }
 
-  static saveGlobalChore(title, icon, frequency, userIds) {
+  static saveGlobalChore(title, icon, frequency, userIds, reward = 0) {
     let chores = this.getChores()
 
     const existingChores = chores.filter(c => c.title === title)
@@ -130,6 +131,7 @@ export class StorageService {
         title,
         icon,
         frequency,
+        reward,
         lastCompletedAt: existing ? existing.lastCompletedAt : null,
         completedBy: existing ? existing.completedBy : null
       })
@@ -167,6 +169,7 @@ export class StorageService {
           ...existing,
           title: updates.title,
           frequency: updates.frequency,
+          reward: updates.reward !== undefined ? updates.reward : existing.reward || 0,
           // Preserve icon if not provided in updates (though currently UI doesn't send icon)
           // Preserve ID and completion status
         })
@@ -178,6 +181,7 @@ export class StorageService {
           title: updates.title,
           icon: originalChore.icon, // Use same icon as original
           frequency: updates.frequency,
+          reward: updates.reward || 0,
           lastCompletedAt: null,
           completedBy: null
         })
