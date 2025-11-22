@@ -262,7 +262,7 @@ export default class extends Controller {
     if (chore) {
         this.editingChoreId = choreId
         this.renderAddForm(StorageService.getUsers(), chore)
-        this.choreFormTarget.scrollIntoView({ behavior: 'smooth' })
+        this.choreFormTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
   }
 
