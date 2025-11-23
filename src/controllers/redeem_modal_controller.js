@@ -2,7 +2,7 @@ import { Controller } from '@hotwired/stimulus'
 import { StorageService } from '../services/StorageService'
 
 export default class extends Controller {
-  static targets = ["name", "balance", "redeemTab", "addTab", "actionButton"]
+  static targets = ["name", "balance", "redeemTab", "addTab", "actionButton", "modalCard"]
 
   connect() {
     this.mode = 'redeem' // 'redeem' or 'add'
@@ -24,15 +24,15 @@ export default class extends Controller {
     this.element.classList.remove('hidden')
     requestAnimationFrame(() => {
       this.element.classList.remove('opacity-0')
-      this.element.querySelector('div').classList.remove('scale-90')
-      this.element.querySelector('div').classList.add('scale-100')
+      this.modalCardTarget.classList.remove('scale-90')
+      this.modalCardTarget.classList.add('scale-100')
     })
   }
 
   close() {
     this.element.classList.add('opacity-0')
-    this.element.querySelector('div').classList.remove('scale-100')
-    this.element.querySelector('div').classList.add('scale-90')
+    this.modalCardTarget.classList.remove('scale-100')
+    this.modalCardTarget.classList.add('scale-90')
 
     setTimeout(() => {
       this.element.classList.add('hidden')

@@ -115,7 +115,7 @@
     <div id="redeem-modal" data-controller="redeem-modal" class="fixed inset-0 z-50 hidden opacity-0 transition-opacity duration-300" role="dialog" aria-modal="true">
       <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" data-action="click->redeem-modal#close"></div>
       <div class="absolute inset-0 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 transform scale-90 transition-transform duration-300 relative">
+        <div data-redeem-modal-target="modalCard" class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 transform scale-90 transition-transform duration-300 relative">
           <button data-action="click->redeem-modal#close" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
