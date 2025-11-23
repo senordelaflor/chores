@@ -8,7 +8,14 @@ export const EXTRA_CHORES_ID = 'extra-chores'
 export class StorageService {
   static getUsers() {
     const users = localStorage.getItem(STORAGE_KEYS.USERS)
-    return users ? JSON.parse(users) : []
+    if (!users) return []
+
+    // Ensure all users have redeemedMinutes initialized
+    const parsedUsers = JSON.parse(users)
+    return parsedUsers.map(u => ({
+      ...u,
+      redeemedMinutes: u.redeemedMinutes || 0
+    }))
   }
 
   static saveUser(user) {
@@ -16,11 +23,22 @@ export class StorageService {
     // Check if user exists
     const index = users.findIndex(u => u.id === user.id)
     if (index >= 0) {
-      users[index] = user
+      users[index] = { ...users[index], ...user }
     } else {
-      users.push(user)
+      users.push({ ...user, redeemedMinutes: 0 })
     }
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users))
+  }
+
+  static redeemMinutes(userId, minutes) {
+    const users = this.getUsers()
+    const index = users.findIndex(u => u.id === userId)
+    if (index >= 0) {
+      users[index].redeemedMinutes = (users[index].redeemedMinutes || 0) + minutes
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users))
+      return true
+    }
+    return false
   }
 
   static deleteUser(userId) {
