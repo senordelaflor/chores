@@ -197,9 +197,9 @@ export class StorageService {
         updatedRelatedChores.push({
           ...existing,
           title: updates.title,
+          icon: updates.icon || existing.icon, // Use new icon if provided, else keep existing
           frequency: updates.frequency,
           reward: updates.reward !== undefined ? updates.reward : existing.reward || 0,
-          // Preserve icon if not provided in updates (though currently UI doesn't send icon)
           // Preserve ID and completion status
         })
       } else {

@@ -144,8 +144,14 @@ export default class extends Controller {
             ${isEditing ? `<button type="button" data-action="click->settings#cancelEdit" class="text-sm text-gray-500 hover:text-gray-700">Cancel</button>` : ''}
         </div>
 
-        <input type="text" name="title" value="${titleValue}" placeholder="Chore Title (e.g. Clean Room)" required
-          class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500">
+        <div class="flex gap-2">
+          <div class="w-20">
+             <input type="text" name="icon" value="${isEditing ? choreToEdit.icon : '🧹'}" placeholder="Emoji" required
+              class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 text-center text-2xl">
+          </div>
+          <input type="text" name="title" value="${titleValue}" placeholder="Chore Title (e.g. Clean Room)" required
+            class="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500">
+        </div>
 
         <!-- Users Selection -->
         <div>
@@ -248,17 +254,19 @@ export default class extends Controller {
     // Get reward
     const reward = parseInt(form.querySelector('input[name="reward"]:checked').value)
 
+    // Get icon
+    const icon = form.icon.value.trim() || '🧹'
+
     if (this.editingChoreId) {
         StorageService.updateGlobalChore(this.editingChoreId, {
             title,
+            icon,
             assignedUserIds: userIds,
             frequency,
             reward
         })
         this.editingChoreId = null
     } else {
-        const icons = ['🧹', '🛏️', '🧸', '🦷', '📚', '🍽️', '🪴', '🐕', '🗑️', '🧺']
-        const icon = icons[Math.floor(Math.random() * icons.length)]
         StorageService.saveGlobalChore(title, icon, frequency, userIds, reward)
     }
 
