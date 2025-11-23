@@ -13,8 +13,8 @@ export class StorageService {
     const users = JSON.parse(usersJson)
     return users.map(user => ({
       ...user,
-      redeemedMinutes: user.redeemedMinutes || 0,
-      redeemedCoins: user.redeemedCoins || 0
+      walletMinutes: user.walletMinutes || 0,
+      walletCoins: user.walletCoins || 0
     }))
   }
 
@@ -41,8 +41,10 @@ export class StorageService {
 
     if (index === -1) return false
 
-    const currentRedeemed = users[index].redeemedMinutes || 0
-    users[index].redeemedMinutes = currentRedeemed + minutes
+    const currentWallet = users[index].walletMinutes || 0
+    if (currentWallet < minutes) return false // Prevent over-redemption
+
+    users[index].walletMinutes = currentWallet - minutes
     this.persistUsers(users)
     return true
   }
@@ -53,8 +55,18 @@ export class StorageService {
 
     if (index === -1) return false
 
-    const currentRedeemed = users[index].redeemedCoins || 0
-    users[index].redeemedCoins = currentRedeemed + amount
+    // Handle adding bonus coins (negative redemption)
+    if (amount < 0) {
+       const currentWallet = users[index].walletCoins || 0
+       users[index].walletCoins = currentWallet - amount // -(-amount) = +amount
+       this.persistUsers(users)
+       return true
+    }
+
+    const currentWallet = users[index].walletCoins || 0
+    if (currentWallet < amount) return false
+
+    users[index].walletCoins = currentWallet - amount
     this.persistUsers(users)
     return true
   }
@@ -107,15 +119,42 @@ export class StorageService {
     const isCompletedToday = chore.lastCompletedAt === today
 
     if (isCompletedToday) {
+      // Unchecking: Subtract reward from the user who completed it
+      if (chore.completedBy) {
+        this.updateWallet(chore.completedBy, chore.reward, false)
+      }
       chore.lastCompletedAt = null
       chore.completedBy = null
     } else {
+      // Checking: Add reward to the user completing it
+      this.updateWallet(completedByUserId, chore.reward, true)
       chore.lastCompletedAt = today
       chore.completedBy = completedByUserId
     }
 
     this.saveChore(chore)
     return chore
+  }
+
+  static updateWallet(userId, reward, isAdding) {
+    const users = this.getUsers()
+    const index = users.findIndex(u => u.id === userId)
+    if (index === -1) return
+
+    const user = users[index]
+    const multiplier = isAdding ? 1 : -1
+
+    if (reward > 0) {
+      user.walletMinutes = (user.walletMinutes || 0) + (reward * multiplier)
+    } else {
+      user.walletCoins = (user.walletCoins || 0) + (1 * multiplier)
+    }
+
+    // Prevent negative balances (optional, but good safety)
+    if (user.walletMinutes < 0) user.walletMinutes = 0
+    if (user.walletCoins < 0) user.walletCoins = 0
+
+    this.persistUsers(users)
   }
 
   static resetAllChores() {
@@ -197,7 +236,7 @@ export class StorageService {
     if (index >= 0) {
       users[index] = { ...users[index], ...user }
     } else {
-      users.push({ ...user, redeemedMinutes: 0, redeemedCoins: 0 })
+      users.push({ ...user, walletMinutes: 0, walletCoins: 0 })
     }
   }
 

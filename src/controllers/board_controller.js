@@ -32,7 +32,7 @@ export default class extends Controller {
   generateUserColumnHTML(user) {
     const today = new Date()
     const chores = StorageService.getChoresForUser(user.id, today)
-    const { completedCount, earnedMinutes, balance, coinBalance } = this.calculateUserStats(user, chores)
+    const { completedCount, balance, coinBalance } = this.calculateUserStats(user, chores)
 
     return `
       <div class="min-w-[85vw] sm:min-w-[350px] h-full flex flex-col snap-center">
@@ -46,40 +46,18 @@ export default class extends Controller {
 
   calculateUserStats(user, chores) {
     let completedCount = 0
-    let earnedMinutes = 0
-    let earnedCoins = 0
 
     chores.forEach(c => {
       const todayStr = StorageService.getCurrentDateString()
       if (c.lastCompletedAt === todayStr) {
         completedCount++
-        if (c.reward > 0) {
-          earnedMinutes += c.reward
-        } else {
-          earnedCoins += 1
-        }
       }
     })
 
-    const extraChores = StorageService.getChoresForUser('extra-chores', new Date())
-    extraChores.forEach(c => {
-      const todayStr = StorageService.getCurrentDateString()
-      if (c.lastCompletedAt === todayStr && c.completedBy === user.id) {
-        if (c.reward > 0) {
-          earnedMinutes += c.reward
-        } else {
-          earnedCoins += 1
-        }
-      }
-    })
+    const balance = user.walletMinutes || 0
+    const coinBalance = user.walletCoins || 0
 
-    const redeemed = user.redeemedMinutes || 0
-    const balance = Math.max(0, earnedMinutes - redeemed)
-
-    const redeemedCoins = user.redeemedCoins || 0
-    const coinBalance = Math.max(0, earnedCoins - redeemedCoins)
-
-    return { completedCount, earnedMinutes, balance, coinBalance }
+    return { completedCount, balance, coinBalance }
   }
 
   generateUserHeaderHTML(user, totalChores, completedCount, balance, coinBalance) {
