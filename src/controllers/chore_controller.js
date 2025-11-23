@@ -42,7 +42,7 @@ export default class extends Controller {
   performToggle(userId = null) {
     const chore = StorageService.toggleChore(this.idValue, userId)
     if (chore) {
-      const today = new Date().toISOString().split('T')[0]
+      const today = StorageService.getLocalDate()
       this.completedValue = chore.lastCompletedAt === today
 
       if (this.completedValue) {

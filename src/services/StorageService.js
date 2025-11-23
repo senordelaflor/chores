@@ -102,11 +102,16 @@ export class StorageService {
     localStorage.setItem(STORAGE_KEYS.CHORES, JSON.stringify(chores))
   }
 
+  static getLocalDate() {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+
   static toggleChore(choreId, completedByUserId = null) {
     const chores = this.getChores()
     const chore = chores.find(c => c.id === choreId)
     if (chore) {
-      const today = new Date().toISOString().split('T')[0]
+      const today = this.getLocalDate()
       if (chore.lastCompletedAt === today) {
         chore.lastCompletedAt = null // Uncheck
         chore.completedBy = null

@@ -28,7 +28,7 @@ export default class extends Controller {
       let earnedMinutes = 0
 
       chores.forEach(c => {
-        const todayStr = today.toISOString().split('T')[0]
+        const todayStr = StorageService.getLocalDate()
         if (c.lastCompletedAt === todayStr) {
           completedCount++
           earnedMinutes += (c.reward || 0)
@@ -38,7 +38,7 @@ export default class extends Controller {
       // Add rewards from claimed extra chores
       const extraChores = StorageService.getChoresForUser('extra-chores', today)
       extraChores.forEach(c => {
-        const todayStr = today.toISOString().split('T')[0]
+        const todayStr = StorageService.getLocalDate()
         if (c.lastCompletedAt === todayStr && c.completedBy === user.id) {
           earnedMinutes += (c.reward || 0)
         }
@@ -139,7 +139,7 @@ export default class extends Controller {
     }
 
     return chores.map(chore => {
-      const isCompleted = chore.lastCompletedAt === new Date().toISOString().split('T')[0]
+      const isCompleted = chore.lastCompletedAt === StorageService.getLocalDate()
       let completedByAvatar = ''
 
       if (isExtra && isCompleted && chore.completedBy) {
