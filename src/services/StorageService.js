@@ -30,6 +30,17 @@ export class StorageService {
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users))
   }
 
+  static updateUser(userId, updates) {
+    const users = this.getUsers()
+    const index = users.findIndex(u => u.id === userId)
+    if (index >= 0) {
+      users[index] = { ...users[index], ...updates }
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users))
+      return true
+    }
+    return false
+  }
+
   static redeemMinutes(userId, minutes) {
     const users = this.getUsers()
     const index = users.findIndex(u => u.id === userId)
