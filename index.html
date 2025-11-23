@@ -58,36 +58,38 @@
           </button>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-6 max-w-3xl mx-auto w-full">
-          <!-- User Management -->
-          <section class="mb-12">
-            <h3 class="text-lg font-semibold text-gray-700 mb-4">Users</h3>
-            <div data-settings-target="userList" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-              <!-- User items -->
-            </div>
-            <form data-action="submit->settings#addUser" class="flex gap-2">
-              <input type="text" name="name" placeholder="Name" required class="flex-1 px-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500">
-              <button type="submit" class="bg-purple-600 text-white px-6 py-2 rounded-xl font-medium hover:bg-purple-700 transition-colors">Add</button>
-            </form>
-          </section>
-
-          <!-- Chore Management -->
-          <section>
-            <h3 class="text-lg font-semibold text-gray-700 mb-4">Manage Chores</h3>
-            <div class="bg-gray-50 p-6 rounded-3xl border border-gray-100">
-
-              <!-- Chore List -->
-              <div data-settings-target="globalChoreList" class="mb-6">
-                <!-- Global chores injected here -->
+        <div class="flex-1 overflow-y-auto w-full">
+          <div class="max-w-3xl mx-auto p-6">
+            <!-- User Management -->
+            <section class="mb-12">
+              <h3 class="text-lg font-semibold text-gray-700 mb-4">Users</h3>
+              <div data-settings-target="userList" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <!-- User items -->
               </div>
-
-              <!-- Add Chore Form -->
-              <form data-settings-target="choreForm" data-action="submit->settings#addGlobalChore">
-                <!-- Form injected here -->
+              <form data-action="submit->settings#addUser" class="flex gap-2">
+                <input type="text" name="name" placeholder="Name" required class="flex-1 px-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <button type="submit" class="bg-purple-600 text-white px-6 py-2 rounded-xl font-medium hover:bg-purple-700 transition-colors">Add</button>
               </form>
+            </section>
 
-            </div>
-          </section>
+            <!-- Chore Management -->
+            <section>
+              <h3 class="text-lg font-semibold text-gray-700 mb-4">Manage Chores</h3>
+              <div class="bg-gray-50 p-6 rounded-3xl border border-gray-100">
+
+                <!-- Chore List -->
+                <div data-settings-target="globalChoreList" class="mb-6">
+                  <!-- Global chores injected here -->
+                </div>
+
+                <!-- Add Chore Form -->
+                <form data-settings-target="choreForm" data-action="submit->settings#addGlobalChore">
+                  <!-- Form injected here -->
+                </form>
+
+              </div>
+            </section>
+          </div>
         </div>
       </div>
 
