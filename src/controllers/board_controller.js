@@ -31,7 +31,16 @@ export default class extends Controller {
 
   generateUserColumnHTML(user) {
     const today = new Date()
-    const chores = StorageService.getChoresForUser(user.id, today)
+    let chores = StorageService.getChoresForUser(user.id, today)
+
+    // Sort: Incomplete first, Completed last
+    chores.sort((a, b) => {
+      const isACompleted = a.lastCompletedAt === StorageService.getCurrentDateString()
+      const isBCompleted = b.lastCompletedAt === StorageService.getCurrentDateString()
+      if (isACompleted === isBCompleted) return 0
+      return isACompleted ? 1 : -1
+    })
+
     const { completedCount, balance, coinBalance } = this.calculateUserStats(user, chores)
 
     return `
@@ -121,23 +130,27 @@ export default class extends Controller {
   }
 
   generateExtraChoresColumnHTML() {
-    const extraChores = StorageService.getChoresForUser('extra-chores', new Date())
+    let extraChores = StorageService.getChoresForUser('extra-chores', new Date())
+
+    // Sort: Incomplete first, Completed last
+    extraChores.sort((a, b) => {
+      const isACompleted = a.lastCompletedAt === StorageService.getCurrentDateString()
+      const isBCompleted = b.lastCompletedAt === StorageService.getCurrentDateString()
+      if (isACompleted === isBCompleted) return 0
+      return isACompleted ? 1 : -1
+    })
 
     return `
       <div class="min-w-[85vw] sm:min-w-[350px] h-full flex flex-col snap-center">
-        <div class="bg-amber-50 rounded-3xl p-6 mb-4 shadow-sm border-2 border-dashed border-amber-200">
-          <div class="flex items-center gap-3 mb-4">
-            <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center text-2xl shadow-sm text-amber-500">
+        <div class="bg-gradient-to-br from-purple-100 to-indigo-50 rounded-3xl p-6 mb-4 shadow-sm">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-12 h-12 bg-white/50 rounded-full flex items-center justify-center text-2xl shadow-sm">
               ✨
             </div>
             <div>
               <h2 class="text-2xl font-bold text-gray-800">Extra Chores</h2>
               <p class="text-sm text-gray-600 font-medium">Up for grabs!</p>
             </div>
-          </div>
-
-          <div class="w-full bg-amber-200/30 rounded-full h-3 overflow-hidden">
-             <div class="bg-amber-300/50 h-full rounded-full w-full"></div>
           </div>
         </div>
         <div class="flex-1 overflow-y-auto space-y-3 pb-6">
