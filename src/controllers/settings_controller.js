@@ -298,4 +298,14 @@ export default class extends Controller {
       this.renderGlobalChores()
     }
   }
+
+  reloadApp() {
+    if (confirm('Update app now? This will reload the page.')) {
+      if (window.forceAppUpdate) {
+        window.forceAppUpdate()
+      } else {
+        window.location.reload()
+      }
+    }
+  }
 }
