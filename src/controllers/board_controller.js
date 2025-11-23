@@ -8,17 +8,16 @@ export default class extends Controller {
   }
 
   render() {
-    const users = StorageService.getUsers()
-
-    if (users.length === 0) {
+    if (StorageService.getUsers().length === 0) {
       this.renderEmptyState()
       return
     }
 
-    const userColumns = users.map(user => this.generateUserColumnHTML(user)).join('')
-    const extraColumn = this.generateExtraChoresColumnHTML()
+    const users = StorageService.getUsers()
+    const extraChoresHTML = this.generateExtraChoresColumnHTML()
+    const userColumnsHTML = users.map(user => this.generateUserColumnHTML(user)).join('')
 
-    this.element.innerHTML = userColumns + extraColumn
+    this.element.innerHTML = extraChoresHTML + userColumnsHTML
   }
 
   renderEmptyState() {
@@ -44,7 +43,7 @@ export default class extends Controller {
     const { completedCount, balance, coinBalance } = this.calculateUserStats(user, chores)
 
     return `
-      <div class="min-w-[85vw] sm:min-w-[350px] h-full flex flex-col snap-center">
+      <div class="min-w-[350px] h-full flex flex-col snap-center">
         ${this.generateUserHeaderHTML(user, chores.length, completedCount, balance, coinBalance)}
         <div class="flex-1 overflow-y-auto space-y-3 pb-6">
           ${this.generateChoresListHTML(chores)}
@@ -95,7 +94,7 @@ export default class extends Controller {
                     data-balance="${balance}"
                     class="text-gray-500 hover:text-purple-600 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3">
-                      <path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.682-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" />
+                      <path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" />
                       <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" />
                     </svg>
                   </button>
@@ -120,8 +119,8 @@ export default class extends Controller {
           </div>
         </div>
 
-        <div class="w-full bg-white/30 rounded-full h-3 overflow-hidden">
-          <div class="bg-white h-full rounded-full transition-all duration-500"
+        <div class="w-full bg-white/50 rounded-full h-3 overflow-hidden">
+          <div class="bg-white/80 h-full rounded-full transition-all duration-500"
                style="width: ${progressPercentage}%">
           </div>
         </div>
@@ -141,9 +140,9 @@ export default class extends Controller {
     })
 
     return `
-      <div class="min-w-[85vw] sm:min-w-[350px] h-full flex flex-col snap-center">
+      <div class="min-w-[350px] h-full flex flex-col snap-center">
         <div class="bg-gradient-to-br from-purple-100 to-indigo-50 rounded-3xl p-6 mb-4 shadow-sm">
-          <div class="flex items-center gap-3 mb-2">
+          <div class="flex items-center gap-3 mb-4">
             <div class="w-12 h-12 bg-white/50 rounded-full flex items-center justify-center text-2xl shadow-sm">
               ✨
             </div>
@@ -152,6 +151,7 @@ export default class extends Controller {
               <p class="text-sm text-gray-600 font-medium">Up for grabs!</p>
             </div>
           </div>
+          <div class="w-full h-3"></div>
         </div>
         <div class="flex-1 overflow-y-auto space-y-3 pb-6">
           ${this.generateChoresListHTML(extraChores, true)}
