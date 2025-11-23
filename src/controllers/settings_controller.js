@@ -308,4 +308,12 @@ export default class extends Controller {
       }
     }
   }
+
+  resetTasks() {
+    if (confirm('Are you sure? This will uncheck ALL tasks for today. This cannot be undone.')) {
+      StorageService.resetAllChores()
+      window.dispatchEvent(new CustomEvent('board:refresh'))
+      alert('All tasks have been reset.')
+    }
+  }
 }

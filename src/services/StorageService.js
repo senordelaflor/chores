@@ -129,6 +129,15 @@ export class StorageService {
     // This logic is implicitly handled by checking lastCompletedAt vs today
   }
 
+  static resetAllChores() {
+    const chores = this.getChores()
+    chores.forEach(chore => {
+      chore.lastCompletedAt = null
+      chore.completedBy = null
+    })
+    localStorage.setItem(STORAGE_KEYS.CHORES, JSON.stringify(chores))
+  }
+
   // Helper to group chores by title (for the settings UI)
   static getGlobalChores() {
     const chores = this.getChores()
