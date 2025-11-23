@@ -12,8 +12,14 @@ export default class extends Controller {
 
   connect() {
     this.updateUI()
+    this.setupClaimListener()
+  }
 
-    // Listen for claim confirmation
+  disconnect() {
+    this.removeClaimListener()
+  }
+
+  setupClaimListener() {
     this.claimHandler = (event) => {
       if (event.detail.choreId === this.idValue) {
         this.performToggle(event.detail.userId)
@@ -22,34 +28,40 @@ export default class extends Controller {
     window.addEventListener('app:claim-confirmed', this.claimHandler)
   }
 
-  disconnect() {
+  removeClaimListener() {
     window.removeEventListener('app:claim-confirmed', this.claimHandler)
   }
 
   toggle(event) {
-    if (this.isExtraValue && !this.completedValue) {
-      // If extra chore and NOT completed, request claim
+    if (this.shouldRequestClaim()) {
       event.preventDefault()
-      window.dispatchEvent(new CustomEvent('app:request-claim', {
-        detail: { choreId: this.idValue }
-      }))
+      this.requestClaim()
       return
     }
 
     this.performToggle()
   }
 
+  shouldRequestClaim() {
+    return this.isExtraValue && !this.completedValue
+  }
+
+  requestClaim() {
+    window.dispatchEvent(new CustomEvent('app:request-claim', {
+      detail: { choreId: this.idValue }
+    }))
+  }
+
   performToggle(userId = null) {
     const chore = StorageService.toggleChore(this.idValue, userId)
     if (chore) {
-      const today = StorageService.getLocalDate()
+      const today = StorageService.getCurrentDateString()
       this.completedValue = chore.lastCompletedAt === today
 
       if (this.completedValue) {
         this.celebrate()
       }
 
-      // Notify board to refresh progress bars
       window.dispatchEvent(new CustomEvent('board:refresh'))
     }
   }
@@ -60,20 +72,28 @@ export default class extends Controller {
 
   updateUI() {
     if (this.completedValue) {
-      this.checkboxTarget.classList.add('bg-green-500', 'border-green-500')
-      this.checkboxTarget.classList.remove('border-gray-200')
-      if (this.hasCheckIconTarget) {
-        this.checkIconTarget.classList.remove('scale-0')
-      }
-      this.titleTarget.classList.add('text-gray-400', 'line-through')
+      this.renderCompletedState()
     } else {
-      this.checkboxTarget.classList.remove('bg-green-500', 'border-green-500')
-      this.checkboxTarget.classList.add('border-gray-200')
-      if (this.hasCheckIconTarget) {
-        this.checkIconTarget.classList.add('scale-0')
-      }
-      this.titleTarget.classList.remove('text-gray-400', 'line-through')
+      this.renderIncompleteState()
     }
+  }
+
+  renderCompletedState() {
+    this.checkboxTarget.classList.add('bg-green-500', 'border-green-500')
+    this.checkboxTarget.classList.remove('border-gray-200')
+    if (this.hasCheckIconTarget) {
+      this.checkIconTarget.classList.remove('scale-0')
+    }
+    this.titleTarget.classList.add('text-gray-400', 'line-through')
+  }
+
+  renderIncompleteState() {
+    this.checkboxTarget.classList.remove('bg-green-500', 'border-green-500')
+    this.checkboxTarget.classList.add('border-gray-200')
+    if (this.hasCheckIconTarget) {
+      this.checkIconTarget.classList.add('scale-0')
+    }
+    this.titleTarget.classList.remove('text-gray-400', 'line-through')
   }
 
   celebrate() {

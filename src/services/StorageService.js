@@ -7,126 +7,102 @@ export const EXTRA_CHORES_ID = 'extra-chores'
 
 export class StorageService {
   static getUsers() {
-    const users = localStorage.getItem(STORAGE_KEYS.USERS)
-    if (!users) return []
+    const usersJson = localStorage.getItem(STORAGE_KEYS.USERS)
+    if (!usersJson) return []
 
-    // Ensure all users have redeemedMinutes initialized
-    const parsedUsers = JSON.parse(users)
-    return parsedUsers.map(u => ({
-      ...u,
-      redeemedMinutes: u.redeemedMinutes || 0
+    const users = JSON.parse(usersJson)
+    return users.map(user => ({
+      ...user,
+      redeemedMinutes: user.redeemedMinutes || 0
     }))
   }
 
   static saveUser(user) {
     const users = this.getUsers()
-    // Check if user exists
-    const index = users.findIndex(u => u.id === user.id)
-    if (index >= 0) {
-      users[index] = { ...users[index], ...user }
-    } else {
-      users.push({ ...user, redeemedMinutes: 0 })
-    }
-    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users))
+    this.updateOrAddUser(users, user)
+    this.persistUsers(users)
   }
 
   static updateUser(userId, updates) {
     const users = this.getUsers()
-    const index = users.findIndex(u => u.id === userId)
-    if (index >= 0) {
-      users[index] = { ...users[index], ...updates }
-      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users))
-      return true
-    }
-    return false
+    const index = users.findIndex(user => user.id === userId)
+
+    if (index === -1) return false
+
+    users[index] = { ...users[index], ...updates }
+    this.persistUsers(users)
+    return true
   }
 
   static redeemMinutes(userId, minutes) {
     const users = this.getUsers()
-    const index = users.findIndex(u => u.id === userId)
-    if (index >= 0) {
-      users[index].redeemedMinutes = (users[index].redeemedMinutes || 0) + minutes
-      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users))
-      return true
-    }
-    return false
+    const index = users.findIndex(user => user.id === userId)
+
+    if (index === -1) return false
+
+    const currentRedeemed = users[index].redeemedMinutes || 0
+    users[index].redeemedMinutes = currentRedeemed + minutes
+    this.persistUsers(users)
+    return true
   }
 
   static deleteUser(userId) {
-    const users = this.getUsers().filter(u => u.id !== userId)
-    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users))
+    const users = this.getUsers().filter(user => user.id !== userId)
+    this.persistUsers(users)
 
-    // Also delete chores for this user
-    const chores = this.getChores().filter(c => c.userId !== userId)
-    localStorage.setItem(STORAGE_KEYS.CHORES, JSON.stringify(chores))
+    const chores = this.getChores().filter(chore => chore.userId !== userId)
+    this.persistChores(chores)
   }
 
   static getChores() {
-    const chores = localStorage.getItem(STORAGE_KEYS.CHORES)
-    return chores ? JSON.parse(chores) : []
+    const choresJson = localStorage.getItem(STORAGE_KEYS.CHORES)
+    return choresJson ? JSON.parse(choresJson) : []
   }
 
   static getChoresForUser(userId, date = new Date()) {
-    const chores = this.getChores().filter(c => c.userId === userId)
-
-    // Filter by frequency
-    const dayOfWeek = date.getDay() // 0 = Sunday, 1 = Monday, etc.
-
-    return chores.filter(chore => {
-      // Backwards compatibility for old chores (assume daily)
-      if (!chore.frequency) return true
-
-      if (chore.frequency.type === 'daily') return true
-
-      if (chore.frequency.type === 'weekly') {
-        return chore.frequency.days.includes(dayOfWeek)
-      }
-
-      return true
-    })
+    const allChores = this.getChores()
+    const userChores = allChores.filter(chore => chore.userId === userId)
+    return this.filterChoresByFrequency(userChores, date)
   }
 
   static saveChore(chore) {
     const chores = this.getChores()
-    const index = chores.findIndex(c => c.id === chore.id)
-    if (index >= 0) {
-      chores[index] = chore
-    } else {
-      chores.push(chore)
-    }
-    localStorage.setItem(STORAGE_KEYS.CHORES, JSON.stringify(chores))
+    this.updateOrAddChore(chores, chore)
+    this.persistChores(chores)
   }
 
   static deleteChore(choreId) {
-    const chores = this.getChores().filter(c => c.id !== choreId)
-    localStorage.setItem(STORAGE_KEYS.CHORES, JSON.stringify(chores))
+    const chores = this.getChores().filter(chore => chore.id !== choreId)
+    this.persistChores(chores)
   }
 
-  static getLocalDate() {
-    const d = new Date()
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  static getCurrentDateString() {
+    const date = new Date()
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
   }
 
   static toggleChore(choreId, completedByUserId = null) {
     const chores = this.getChores()
     const chore = chores.find(c => c.id === choreId)
-    if (chore) {
-      const today = this.getLocalDate()
-      if (chore.lastCompletedAt === today) {
-        chore.lastCompletedAt = null // Uncheck
-        chore.completedBy = null
-      } else {
-        chore.lastCompletedAt = today // Check
-        chore.completedBy = completedByUserId
-      }
-      this.saveChore(chore)
-      return chore
-    }
-    return null
-  }
 
-  static resetDailyChores() {
-    // This logic is implicitly handled by checking lastCompletedAt vs today
+    if (!chore) return null
+
+    const today = this.getCurrentDateString()
+    const isCompletedToday = chore.lastCompletedAt === today
+
+    if (isCompletedToday) {
+      chore.lastCompletedAt = null
+      chore.completedBy = null
+    } else {
+      chore.lastCompletedAt = today
+      chore.completedBy = completedByUserId
+    }
+
+    this.saveChore(chore)
+    return chore
   }
 
   static resetAllChores() {
@@ -135,24 +111,16 @@ export class StorageService {
       chore.lastCompletedAt = null
       chore.completedBy = null
     })
-    localStorage.setItem(STORAGE_KEYS.CHORES, JSON.stringify(chores))
+    this.persistChores(chores)
   }
 
-  // Helper to group chores by title (for the settings UI)
   static getGlobalChores() {
     const chores = this.getChores()
     const groups = {}
 
     chores.forEach(chore => {
       if (!groups[chore.title]) {
-        groups[chore.title] = {
-          id: chore.id, // Use the first chore's ID as the group identifier
-          title: chore.title,
-          icon: chore.icon,
-          frequency: chore.frequency || { type: 'daily', days: [] },
-          reward: chore.reward || 0,
-          assignedUserIds: []
-        }
+        groups[chore.title] = this.createGlobalChoreGroup(chore)
       }
       groups[chore.title].assignedUserIds.push(chore.userId)
     })
@@ -162,83 +130,129 @@ export class StorageService {
 
   static saveGlobalChore(title, icon, frequency, userIds, reward = 0) {
     let chores = this.getChores()
-
-    const existingChores = chores.filter(c => c.title === title)
-    chores = chores.filter(c => c.title !== title)
+    const existingChores = chores.filter(chore => chore.title === title)
+    chores = chores.filter(chore => chore.title !== title)
 
     userIds.forEach(userId => {
-      const existing = existingChores.find(c => c.userId === userId)
-      chores.push({
-        id: existing ? existing.id : crypto.randomUUID(),
-        userId,
-        title,
-        icon,
-        frequency,
-        reward,
-        lastCompletedAt: existing ? existing.lastCompletedAt : null,
-        completedBy: existing ? existing.completedBy : null
-      })
+      const existingChore = existingChores.find(chore => chore.userId === userId)
+      const newChore = this.createChoreInstance(existingChore, userId, title, icon, frequency, reward)
+      chores.push(newChore)
     })
 
-    localStorage.setItem(STORAGE_KEYS.CHORES, JSON.stringify(chores))
+    this.persistChores(chores)
   }
 
   static updateGlobalChore(choreId, updates) {
-    let chores = this.getChores()
+    const chores = this.getChores()
+    const originalChore = chores.find(chore => chore.id === choreId)
 
-    // 1. Find the original chore to get the old title
-    const originalChore = chores.find(c => c.id === choreId)
     if (!originalChore) return false
 
     const oldTitle = originalChore.title
-
-    // 2. Identify chores to keep, update, or remove
-    // We want to keep chores that are NOT related to this global chore
-    const otherChores = chores.filter(c => c.title !== oldTitle)
-
-    // Chores that ARE related
-    const relatedChores = chores.filter(c => c.title === oldTitle)
-
+    const otherChores = chores.filter(chore => chore.title !== oldTitle)
+    const relatedChores = chores.filter(chore => chore.title === oldTitle)
     const updatedRelatedChores = []
 
-    // 3. Process updates
     updates.assignedUserIds.forEach(userId => {
-      // Check if this user already had this chore
-      const existing = relatedChores.find(c => c.userId === userId)
-
-      if (existing) {
-        // Update existing chore
-        updatedRelatedChores.push({
-          ...existing,
-          title: updates.title,
-          icon: updates.icon || existing.icon, // Use new icon if provided, else keep existing
-          frequency: updates.frequency,
-          reward: updates.reward !== undefined ? updates.reward : existing.reward || 0,
-          // Preserve ID and completion status
-        })
-      } else {
-        // New assignment for this user
-        updatedRelatedChores.push({
-          id: crypto.randomUUID(),
-          userId,
-          title: updates.title,
-          icon: originalChore.icon, // Use same icon as original
-          frequency: updates.frequency,
-          reward: updates.reward || 0,
-          lastCompletedAt: null,
-          completedBy: null
-        })
-      }
+      const existingChore = relatedChores.find(chore => chore.userId === userId)
+      const updatedChore = this.createUpdatedChoreInstance(existingChore, userId, originalChore, updates)
+      updatedRelatedChores.push(updatedChore)
     })
 
-    // 4. Save everything back
     const newChores = [...otherChores, ...updatedRelatedChores]
-    localStorage.setItem(STORAGE_KEYS.CHORES, JSON.stringify(newChores))
+    this.persistChores(newChores)
     return true
   }
 
   static deleteGlobalChore(title) {
-    const chores = this.getChores().filter(c => c.title !== title)
+    const chores = this.getChores().filter(chore => chore.title !== title)
+    this.persistChores(chores)
+  }
+
+  // Private Helpers
+
+  static persistUsers(users) {
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users))
+  }
+
+  static persistChores(chores) {
     localStorage.setItem(STORAGE_KEYS.CHORES, JSON.stringify(chores))
+  }
+
+  static updateOrAddUser(users, user) {
+    const index = users.findIndex(u => u.id === user.id)
+    if (index >= 0) {
+      users[index] = { ...users[index], ...user }
+    } else {
+      users.push({ ...user, redeemedMinutes: 0 })
+    }
+  }
+
+  static updateOrAddChore(chores, chore) {
+    const index = chores.findIndex(c => c.id === chore.id)
+    if (index >= 0) {
+      chores[index] = chore
+    } else {
+      chores.push(chore)
+    }
+  }
+
+  static filterChoresByFrequency(chores, date) {
+    const dayOfWeek = date.getDay()
+    return chores.filter(chore => {
+      if (!chore.frequency) return true
+      if (chore.frequency.type === 'daily') return true
+      if (chore.frequency.type === 'weekly') {
+        return chore.frequency.days.includes(dayOfWeek)
+      }
+      return true
+    })
+  }
+
+  static createGlobalChoreGroup(chore) {
+    return {
+      id: chore.id,
+      title: chore.title,
+      icon: chore.icon,
+      frequency: chore.frequency || { type: 'daily', days: [] },
+      reward: chore.reward || 0,
+      assignedUserIds: []
+    }
+  }
+
+  static createChoreInstance(existingChore, userId, title, icon, frequency, reward) {
+    return {
+      id: existingChore ? existingChore.id : crypto.randomUUID(),
+      userId,
+      title,
+      icon,
+      frequency,
+      reward,
+      lastCompletedAt: existingChore ? existingChore.lastCompletedAt : null,
+      completedBy: existingChore ? existingChore.completedBy : null
+    }
+  }
+
+  static createUpdatedChoreInstance(existingChore, userId, originalChore, updates) {
+    if (existingChore) {
+      return {
+        ...existingChore,
+        title: updates.title,
+        icon: updates.icon || existingChore.icon,
+        frequency: updates.frequency,
+        reward: updates.reward !== undefined ? updates.reward : existingChore.reward || 0
+      }
+    }
+
+    return {
+      id: crypto.randomUUID(),
+      userId,
+      title: updates.title,
+      icon: originalChore.icon,
+      frequency: updates.frequency,
+      reward: updates.reward || 0,
+      lastCompletedAt: null,
+      completedBy: null
+    }
   }
 }

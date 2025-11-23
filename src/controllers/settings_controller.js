@@ -15,9 +15,11 @@ export default class extends Controller {
 
   renderUsers() {
     const users = StorageService.getUsers()
+    this.userListTarget.innerHTML = this.generateUserListHTML(users)
+  }
 
-    // Render User List
-    this.userListTarget.innerHTML = users.map(user => `
+  generateUserListHTML(users) {
+    return users.map(user => `
       <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-full ${user.color} flex items-center justify-center text-xl">
@@ -39,10 +41,6 @@ export default class extends Controller {
         </div>
       </div>
     `).join('')
-
-    // The userSelect and choreList logic is removed as per the new global chore management
-    // and the updated static targets.
-    // The choreListTarget is now used for global chores.
   }
 
   addUser(event) {
@@ -51,20 +49,24 @@ export default class extends Controller {
     const name = form.name.value.trim()
     if (!name) return
 
+    const user = this.createNewUser(name)
+    StorageService.saveUser(user)
+
+    form.reset()
+    this.renderUsers()
+    this.renderGlobalChores()
+  }
+
+  createNewUser(name) {
     const colors = ['bg-red-100', 'bg-orange-100', 'bg-amber-100', 'bg-green-100', 'bg-emerald-100', 'bg-teal-100', 'bg-cyan-100', 'bg-sky-100', 'bg-blue-100', 'bg-indigo-100', 'bg-violet-100', 'bg-purple-100', 'bg-fuchsia-100', 'bg-pink-100', 'bg-rose-100']
     const emojis = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🦄', '🐝', '🐞']
 
-    const user = {
+    return {
       id: crypto.randomUUID(),
       name,
       color: colors[Math.floor(Math.random() * colors.length)],
       avatar: emojis[Math.floor(Math.random() * emojis.length)]
     }
-
-    StorageService.saveUser(user)
-    form.reset()
-    this.renderUsers()
-    this.renderGlobalChores() // Re-render global chores to update user assignments
   }
 
   deleteUser(event) {
@@ -72,7 +74,7 @@ export default class extends Controller {
     const userId = event.currentTarget.dataset.userId
     StorageService.deleteUser(userId)
     this.renderUsers()
-    this.renderGlobalChores() // Re-render global chores to update user assignments
+    this.renderGlobalChores()
   }
 
   editUser(event) {
@@ -83,17 +85,17 @@ export default class extends Controller {
   renderGlobalChores() {
     const chores = StorageService.getGlobalChores()
     const users = StorageService.getUsers()
+    this.globalChoreListTarget.innerHTML = this.generateGlobalChoresHTML(chores, users)
 
-    this.globalChoreListTarget.innerHTML = chores.map(chore => {
-      const assignedNames = chore.assignedUserIds.map(id => {
-        if (id === 'extra-chores') return '✨ Extra Chores'
-        const user = users.find(u => u.id === id)
-        return user ? user.name : 'Unknown'
-      }).join(', ')
+    if (!this.editingChoreId) {
+        this.renderAddForm(users)
+    }
+  }
 
-      const frequencyText = chore.frequency.type === 'daily'
-        ? 'Daily'
-        : chore.frequency.days.map(d => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]).join(', ')
+  generateGlobalChoresHTML(chores, users) {
+    return chores.map(chore => {
+      const assignedNames = this.getAssignedNames(chore.assignedUserIds, users)
+      const frequencyText = this.getFrequencyText(chore.frequency)
 
       return `
         <div class="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100 shadow-sm mb-2">
@@ -121,21 +123,30 @@ export default class extends Controller {
         </div>
       `
     }).join('')
+  }
 
-    // Render Add Form only if not editing (or re-render to reset if needed, but we handle that in edit/cancel)
-    if (!this.editingChoreId) {
-        this.renderAddForm(users)
-    }
+  getAssignedNames(userIds, users) {
+    return userIds.map(id => {
+      if (id === 'extra-chores') return '✨ Extra Chores'
+      const user = users.find(u => u.id === id)
+      return user ? user.name : 'Unknown'
+    }).join(', ')
+  }
+
+  getFrequencyText(frequency) {
+    if (frequency.type === 'daily') return 'Daily'
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    return frequency.days.map(d => days[d]).join(', ')
   }
 
   renderAddForm(users, choreToEdit = null) {
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
     const isEditing = !!choreToEdit
-
     const titleValue = isEditing ? choreToEdit.title : ''
     const assignedIds = isEditing ? choreToEdit.assignedUserIds : []
     const isDaily = isEditing ? choreToEdit.frequency.type === 'daily' : true
     const selectedDays = isEditing && !isDaily ? choreToEdit.frequency.days : []
+    const iconValue = isEditing ? choreToEdit.icon : '🧹'
+    const rewardValue = isEditing ? (choreToEdit.reward || 0) : 0
 
     this.choreFormTarget.innerHTML = `
       <div class="space-y-4">
@@ -146,78 +157,100 @@ export default class extends Controller {
 
         <div class="flex gap-2">
           <div class="w-20">
-             <input type="text" name="icon" value="${isEditing ? choreToEdit.icon : '🧹'}" placeholder="Emoji" required
+             <input type="text" name="icon" value="${iconValue}" placeholder="Emoji" required
               class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 text-center text-2xl">
           </div>
           <input type="text" name="title" value="${titleValue}" placeholder="Chore Title (e.g. Clean Room)" required
             class="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500">
         </div>
 
-        <!-- Users Selection -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Assign to:</label>
-          <div class="flex flex-wrap gap-2">
-            ${users.map(user => `
-              <label class="cursor-pointer select-none">
-                <input type="checkbox" name="users" value="${user.id}" class="peer sr-only" ${assignedIds.includes(user.id) ? 'checked' : ''}>
-                <div class="px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 peer-checked:bg-purple-100 peer-checked:text-purple-700 peer-checked:ring-2 peer-checked:ring-purple-500 transition-all text-sm font-medium flex items-center gap-2">
-                  <span>${user.avatar}</span>
-                  ${user.name}
-                </div>
-              </label>
-            `).join('')}
-
-            <!-- Extra Chores Option -->
-            <label class="cursor-pointer select-none">
-              <input type="checkbox" name="users" value="extra-chores" class="peer sr-only" ${assignedIds.includes('extra-chores') ? 'checked' : ''}>
-              <div class="px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 peer-checked:bg-amber-100 peer-checked:text-amber-700 peer-checked:ring-2 peer-checked:ring-amber-500 transition-all text-sm font-medium flex items-center gap-2">
-                <span>✨</span>
-                Extra Chores
-              </div>
-            </label>
-          </div>
-        </div>
-
-        <!-- Frequency -->
-        <div data-controller="frequency">
-          <label class="flex items-center gap-2 mb-3 cursor-pointer">
-            <input type="checkbox" name="isDaily" ${isDaily ? 'checked' : ''} data-frequency-target="dailyCheck" data-action="change->frequency#toggleDays" class="w-5 h-5 text-purple-600 rounded focus:ring-purple-500 border-gray-300">
-            <span class="text-gray-700 font-medium">Daily Task</span>
-          </label>
-
-          <div data-frequency-target="daysContainer" class="${isDaily ? 'hidden' : ''} pl-1">
-            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Select Days</label>
-            <div class="flex justify-between gap-1">
-              ${days.map((day, index) => `
-                <label class="cursor-pointer">
-                  <input type="checkbox" name="days" value="${index}" class="peer sr-only" ${selectedDays.includes(index) ? 'checked' : ''}>
-                  <div class="w-9 h-9 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-xs font-bold peer-checked:bg-purple-600 peer-checked:text-white transition-all border border-gray-100">
-                    ${day.slice(0, 1)}
-                  </div>
-                </label>
-              `).join('')}
-            </div>
-          </div>
-        </div>
-
-        <!-- Reward -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Reward (Screen Time):</label>
-          <div class="flex gap-2">
-            ${[0, 15, 30, 45, 60].map(mins => `
-              <label class="cursor-pointer">
-                <input type="radio" name="reward" value="${mins}" class="peer sr-only" ${(!choreToEdit && mins === 0) || (choreToEdit && (choreToEdit.reward || 0) === mins) ? 'checked' : ''}>
-                <div class="px-3 py-2 rounded-xl bg-gray-50 text-gray-500 font-medium text-sm border border-transparent peer-checked:bg-blue-50 peer-checked:text-blue-600 peer-checked:border-blue-200 transition-all">
-                  ${mins === 0 ? 'None' : `${mins}m`}
-                </div>
-              </label>
-            `).join('')}
-          </div>
-        </div>
+        ${this.generateUserSelectionHTML(users, assignedIds)}
+        ${this.generateFrequencyHTML(isDaily, selectedDays)}
+        ${this.generateRewardHTML(rewardValue)}
 
         <button type="submit" class="w-full bg-purple-600 text-white py-3 rounded-xl font-bold hover:bg-purple-700 transition-colors shadow-lg shadow-purple-200">
           ${isEditing ? 'Update Chore' : 'Create Chore'}
         </button>
+      </div>
+    `
+  }
+
+  generateUserSelectionHTML(users, assignedIds) {
+    return `
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Assign to:</label>
+        <div class="flex flex-wrap gap-2">
+          ${users.map(user => this.generateUserCheckboxHTML(user, assignedIds)).join('')}
+          ${this.generateExtraChoresCheckboxHTML(assignedIds)}
+        </div>
+      </div>
+    `
+  }
+
+  generateUserCheckboxHTML(user, assignedIds) {
+    return `
+      <label class="cursor-pointer select-none">
+        <input type="checkbox" name="users" value="${user.id}" class="peer sr-only" ${assignedIds.includes(user.id) ? 'checked' : ''}>
+        <div class="px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 peer-checked:bg-purple-100 peer-checked:text-purple-700 peer-checked:ring-2 peer-checked:ring-purple-500 transition-all text-sm font-medium flex items-center gap-2">
+          <span>${user.avatar}</span>
+          ${user.name}
+        </div>
+      </label>
+    `
+  }
+
+  generateExtraChoresCheckboxHTML(assignedIds) {
+    return `
+      <label class="cursor-pointer select-none">
+        <input type="checkbox" name="users" value="extra-chores" class="peer sr-only" ${assignedIds.includes('extra-chores') ? 'checked' : ''}>
+        <div class="px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 peer-checked:bg-amber-100 peer-checked:text-amber-700 peer-checked:ring-2 peer-checked:ring-amber-500 transition-all text-sm font-medium flex items-center gap-2">
+          <span>✨</span>
+          Extra Chores
+        </div>
+      </label>
+    `
+  }
+
+  generateFrequencyHTML(isDaily, selectedDays) {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    return `
+      <div data-controller="frequency">
+        <label class="flex items-center gap-2 mb-3 cursor-pointer">
+          <input type="checkbox" name="isDaily" ${isDaily ? 'checked' : ''} data-frequency-target="dailyCheck" data-action="change->frequency#toggleDays" class="w-5 h-5 text-purple-600 rounded focus:ring-purple-500 border-gray-300">
+          <span class="text-gray-700 font-medium">Daily Task</span>
+        </label>
+
+        <div data-frequency-target="daysContainer" class="${isDaily ? 'hidden' : ''} pl-1">
+          <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Select Days</label>
+          <div class="flex justify-between gap-1">
+            ${days.map((day, index) => `
+              <label class="cursor-pointer">
+                <input type="checkbox" name="days" value="${index}" class="peer sr-only" ${selectedDays.includes(index) ? 'checked' : ''}>
+                <div class="w-9 h-9 rounded-full bg-gray-50 text-gray-400 flex items-center justify-center text-xs font-bold peer-checked:bg-purple-600 peer-checked:text-white transition-all border border-gray-100">
+                  ${day.slice(0, 1)}
+                </div>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    `
+  }
+
+  generateRewardHTML(currentReward) {
+    return `
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Reward (Screen Time):</label>
+        <div class="flex gap-2">
+          ${[0, 15, 30, 45, 60].map(mins => `
+            <label class="cursor-pointer">
+              <input type="radio" name="reward" value="${mins}" class="peer sr-only" ${currentReward === mins ? 'checked' : ''}>
+              <div class="px-3 py-2 rounded-xl bg-gray-50 text-gray-500 font-medium text-sm border border-transparent peer-checked:bg-blue-50 peer-checked:text-blue-600 peer-checked:border-blue-200 transition-all">
+                ${mins === 0 ? 'None' : `${mins}m`}
+              </div>
+            </label>
+          `).join('')}
+        </div>
       </div>
     `
   }
@@ -228,33 +261,19 @@ export default class extends Controller {
     const title = form.title.value.trim()
     if (!title) return
 
-    // Get selected users
-    const userCheckboxes = form.querySelectorAll('input[name="users"]:checked')
-    const userIds = Array.from(userCheckboxes).map(cb => cb.value)
-
+    const userIds = this.getSelectedUserIds(form)
     if (userIds.length === 0) {
       alert('Please select at least one user')
       return
     }
 
-    // Get frequency
-    const isDaily = form.querySelector('input[name="isDaily"]').checked
-    let frequency = { type: 'daily', days: [] }
-
-    if (!isDaily) {
-      const dayCheckboxes = form.querySelectorAll('input[name="days"]:checked')
-      const days = Array.from(dayCheckboxes).map(cb => parseInt(cb.value))
-      if (days.length === 0) {
+    const frequency = this.getFrequencyFromForm(form)
+    if (frequency.type === 'weekly' && frequency.days.length === 0) {
         alert('Please select at least one day')
         return
-      }
-      frequency = { type: 'weekly', days }
     }
 
-    // Get reward
     const reward = parseInt(form.querySelector('input[name="reward"]:checked').value)
-
-    // Get icon
     const icon = form.icon.value.trim() || '🧹'
 
     if (this.editingChoreId) {
@@ -271,7 +290,23 @@ export default class extends Controller {
     }
 
     this.renderGlobalChores()
-    this.renderAddForm(StorageService.getUsers()) // Reset form
+    this.renderAddForm(StorageService.getUsers())
+  }
+
+  getSelectedUserIds(form) {
+    const userCheckboxes = form.querySelectorAll('input[name="users"]:checked')
+    return Array.from(userCheckboxes).map(cb => cb.value)
+  }
+
+  getFrequencyFromForm(form) {
+    const isDaily = form.querySelector('input[name="isDaily"]').checked
+    if (isDaily) {
+        return { type: 'daily', days: [] }
+    }
+
+    const dayCheckboxes = form.querySelectorAll('input[name="days"]:checked')
+    const days = Array.from(dayCheckboxes).map(cb => parseInt(cb.value))
+    return { type: 'weekly', days }
   }
 
   editGlobalChore(event) {
