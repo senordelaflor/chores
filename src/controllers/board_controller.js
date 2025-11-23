@@ -32,11 +32,11 @@ export default class extends Controller {
   generateUserColumnHTML(user) {
     const today = new Date()
     const chores = StorageService.getChoresForUser(user.id, today)
-    const { completedCount, earnedMinutes, balance } = this.calculateUserStats(user, chores)
+    const { completedCount, earnedMinutes, balance, coinBalance } = this.calculateUserStats(user, chores)
 
     return `
       <div class="min-w-[85vw] sm:min-w-[350px] h-full flex flex-col snap-center">
-        ${this.generateUserHeaderHTML(user, chores.length, completedCount, balance)}
+        ${this.generateUserHeaderHTML(user, chores.length, completedCount, balance, coinBalance)}
         <div class="flex-1 overflow-y-auto space-y-3 pb-6">
           ${this.generateChoresListHTML(chores)}
         </div>
@@ -47,12 +47,17 @@ export default class extends Controller {
   calculateUserStats(user, chores) {
     let completedCount = 0
     let earnedMinutes = 0
+    let earnedCoins = 0
 
     chores.forEach(c => {
       const todayStr = StorageService.getCurrentDateString()
       if (c.lastCompletedAt === todayStr) {
         completedCount++
-        earnedMinutes += (c.reward || 0)
+        if (c.reward > 0) {
+          earnedMinutes += c.reward
+        } else {
+          earnedCoins += 1
+        }
       }
     })
 
@@ -60,17 +65,24 @@ export default class extends Controller {
     extraChores.forEach(c => {
       const todayStr = StorageService.getCurrentDateString()
       if (c.lastCompletedAt === todayStr && c.completedBy === user.id) {
-        earnedMinutes += (c.reward || 0)
+        if (c.reward > 0) {
+          earnedMinutes += c.reward
+        } else {
+          earnedCoins += 1
+        }
       }
     })
 
     const redeemed = user.redeemedMinutes || 0
     const balance = Math.max(0, earnedMinutes - redeemed)
 
-    return { completedCount, earnedMinutes, balance }
+    const redeemedCoins = user.redeemedCoins || 0
+    const coinBalance = Math.max(0, earnedCoins - redeemedCoins)
+
+    return { completedCount, earnedMinutes, balance, coinBalance }
   }
 
-  generateUserHeaderHTML(user, totalChores, completedCount, balance) {
+  generateUserHeaderHTML(user, totalChores, completedCount, balance, coinBalance) {
     const progressPercentage = totalChores ? (completedCount / totalChores) * 100 : 0
 
     return `
@@ -82,7 +94,7 @@ export default class extends Controller {
             </div>
             <div>
               <h2 class="text-2xl font-bold text-gray-800">${user.name}</h2>
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 flex-wrap">
                 <p class="text-sm text-gray-600 font-medium">
                   ${completedCount}/${totalChores} completed
                 </p>
@@ -96,7 +108,22 @@ export default class extends Controller {
                     data-balance="${balance}"
                     class="text-gray-500 hover:text-purple-600 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3">
-                      <path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" />
+                      <path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.682-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" />
+                      <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" />
+                    </svg>
+                  </button>
+                </div>
+                <div class="flex items-center gap-1 bg-white/60 rounded-lg px-2 py-0.5">
+                  <span class="text-xs font-bold text-gray-700 flex items-center gap-1">
+                    🏅 ${coinBalance}
+                  </span>
+                  <button
+                    data-action="click->board#openCoinModal"
+                    data-user-id="${user.id}"
+                    data-balance="${coinBalance}"
+                    class="text-gray-500 hover:text-amber-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3">
+                      <path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.682-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" />
                       <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" />
                     </svg>
                   </button>
@@ -211,6 +238,15 @@ export default class extends Controller {
     const balance = event.currentTarget.dataset.balance
 
     window.dispatchEvent(new CustomEvent('app:request-redeem', {
+      detail: { userId, balance }
+    }))
+  }
+
+  openCoinModal(event) {
+    const userId = event.currentTarget.dataset.userId
+    const balance = event.currentTarget.dataset.balance
+
+    window.dispatchEvent(new CustomEvent('app:request-coin-redeem', {
       detail: { userId, balance }
     }))
   }

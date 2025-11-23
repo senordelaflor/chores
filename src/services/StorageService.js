@@ -13,7 +13,8 @@ export class StorageService {
     const users = JSON.parse(usersJson)
     return users.map(user => ({
       ...user,
-      redeemedMinutes: user.redeemedMinutes || 0
+      redeemedMinutes: user.redeemedMinutes || 0,
+      redeemedCoins: user.redeemedCoins || 0
     }))
   }
 
@@ -42,6 +43,18 @@ export class StorageService {
 
     const currentRedeemed = users[index].redeemedMinutes || 0
     users[index].redeemedMinutes = currentRedeemed + minutes
+    this.persistUsers(users)
+    return true
+  }
+
+  static redeemCoins(userId, amount) {
+    const users = this.getUsers()
+    const index = users.findIndex(user => user.id === userId)
+
+    if (index === -1) return false
+
+    const currentRedeemed = users[index].redeemedCoins || 0
+    users[index].redeemedCoins = currentRedeemed + amount
     this.persistUsers(users)
     return true
   }
@@ -184,7 +197,7 @@ export class StorageService {
     if (index >= 0) {
       users[index] = { ...users[index], ...user }
     } else {
-      users.push({ ...user, redeemedMinutes: 0 })
+      users.push({ ...user, redeemedMinutes: 0, redeemedCoins: 0 })
     }
   }
 
