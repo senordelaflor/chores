@@ -127,9 +127,10 @@ export class StorageService {
       chore.completedBy = null
     } else {
       // Checking: Add reward to the user completing it
-      this.updateWallet(completedByUserId, chore.reward, true)
+      const userIdToReward = completedByUserId || chore.userId
+      this.updateWallet(userIdToReward, chore.reward, true)
       chore.lastCompletedAt = today
-      chore.completedBy = completedByUserId
+      chore.completedBy = userIdToReward
     }
 
     this.saveChore(chore)
