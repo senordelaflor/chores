@@ -3,6 +3,20 @@ import { Controller } from '@hotwired/stimulus'
 export default class extends Controller {
   static targets = ["board", "settings"]
 
+  connect() {
+    this.startDayCheck()
+  }
+
+  disconnect() {
+    this.stopDayCheck()
+  }
+
+  handleVisibilityChange() {
+    if (document.visibilityState === 'visible') {
+      this.checkDate()
+    }
+  }
+
   toggleSettings() {
     this.settingsTarget.classList.toggle('hidden')
     this.settingsTarget.classList.toggle('translate-y-full')
@@ -24,5 +38,43 @@ export default class extends Controller {
 
   refreshSettings() {
     window.dispatchEvent(new CustomEvent('settings:refresh'))
+  }
+
+  refreshApp() {
+    this.refreshBoard()
+    this.refreshSettings()
+
+    // Visual feedback (optional but nice)
+    const btn = this.element.querySelector('[data-action="app#refreshApp"]')
+    if (btn) {
+      btn.classList.add('animate-spin')
+      setTimeout(() => btn.classList.remove('animate-spin'), 500)
+    }
+  }
+
+  startDayCheck() {
+    this.lastDate = new Date().toLocaleDateString()
+
+    // Check every minute
+    this.dayCheckInterval = setInterval(() => {
+      this.checkDate()
+    }, 60000)
+  }
+
+  checkDate() {
+    const currentDate = new Date().toLocaleDateString()
+
+    if (currentDate !== this.lastDate) {
+      this.lastDate = currentDate
+      console.log('New day detected, refreshing app...')
+      this.refreshBoard()
+      this.refreshSettings()
+    }
+  }
+
+  stopDayCheck() {
+    if (this.dayCheckInterval) {
+      clearInterval(this.dayCheckInterval)
+    }
   }
 }
