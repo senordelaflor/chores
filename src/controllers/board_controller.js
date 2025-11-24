@@ -43,7 +43,7 @@ export default class extends Controller {
     const { completedCount, balance, coinBalance } = this.calculateUserStats(user, chores)
 
     return `
-      <div class="min-w-[350px] h-full flex flex-col snap-center">
+      <div class="min-w-[366px] h-full flex flex-col snap-center">
         ${this.generateUserHeaderHTML(user, chores.length, completedCount, balance, coinBalance)}
         <div class="flex-1 overflow-y-auto space-y-3 pb-6">
           ${this.generateChoresListHTML(chores)}
@@ -140,7 +140,7 @@ export default class extends Controller {
     })
 
     return `
-      <div class="min-w-[350px] h-full flex flex-col snap-center">
+      <div class="min-w-[400px] h-full flex flex-col snap-center">
         <div class="bg-gradient-to-br from-purple-100 to-indigo-50 rounded-3xl p-6 mb-4 shadow-sm">
           <div class="flex items-center gap-3 mb-4">
             <div class="w-12 h-12 bg-white/50 rounded-full flex items-center justify-center text-2xl shadow-sm">
