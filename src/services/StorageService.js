@@ -42,7 +42,7 @@ export class StorageService {
     if (index === -1) return false
 
     const currentWallet = users[index].walletMinutes || 0
-    if (currentWallet < minutes) return false // Prevent over-redemption
+    if (currentWallet < minutes) return false
 
     users[index].walletMinutes = currentWallet - minutes
     this.persistUsers(users)
@@ -55,10 +55,9 @@ export class StorageService {
 
     if (index === -1) return false
 
-    // Handle adding bonus coins (negative redemption)
     if (amount < 0) {
        const currentWallet = users[index].walletCoins || 0
-       users[index].walletCoins = currentWallet - amount // -(-amount) = +amount
+       users[index].walletCoins = currentWallet - amount
        this.persistUsers(users)
        return true
     }
@@ -119,22 +118,28 @@ export class StorageService {
     const isCompletedToday = chore.lastCompletedAt === today
 
     if (isCompletedToday) {
-      // Unchecking: Subtract reward from the user who completed it
-      if (chore.completedBy) {
-        this.updateWallet(chore.completedBy, chore.reward, false)
-      }
-      chore.lastCompletedAt = null
-      chore.completedBy = null
+      this.handleChoreUncheck(chore)
     } else {
-      // Checking: Add reward to the user completing it
-      const userIdToReward = completedByUserId || chore.userId
-      this.updateWallet(userIdToReward, chore.reward, true)
-      chore.lastCompletedAt = today
-      chore.completedBy = userIdToReward
+      this.handleChoreCheck(chore, completedByUserId, today)
     }
 
     this.saveChore(chore)
     return chore
+  }
+
+  static handleChoreUncheck(chore) {
+    if (chore.completedBy) {
+      this.updateWallet(chore.completedBy, chore.reward, false)
+    }
+    chore.lastCompletedAt = null
+    chore.completedBy = null
+  }
+
+  static handleChoreCheck(chore, completedByUserId, today) {
+    const userIdToReward = completedByUserId || chore.userId
+    this.updateWallet(userIdToReward, chore.reward, true)
+    chore.lastCompletedAt = today
+    chore.completedBy = userIdToReward
   }
 
   static updateWallet(userId, reward, isAdding) {
@@ -151,7 +156,6 @@ export class StorageService {
       user.walletCoins = (user.walletCoins || 0) + (1 * multiplier)
     }
 
-    // Prevent negative balances (optional, but good safety)
     if (user.walletMinutes < 0) user.walletMinutes = 0
     if (user.walletCoins < 0) user.walletCoins = 0
 
@@ -222,7 +226,7 @@ export class StorageService {
     this.persistChores(chores)
   }
 
-  // Private Helpers
+
 
   static persistUsers(users) {
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users))

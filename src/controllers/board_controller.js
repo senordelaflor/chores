@@ -32,13 +32,7 @@ export default class extends Controller {
     const today = new Date()
     let chores = StorageService.getChoresForUser(user.id, today)
 
-    // Sort: Incomplete first, Completed last
-    chores.sort((a, b) => {
-      const isACompleted = a.lastCompletedAt === StorageService.getCurrentDateString()
-      const isBCompleted = b.lastCompletedAt === StorageService.getCurrentDateString()
-      if (isACompleted === isBCompleted) return 0
-      return isACompleted ? 1 : -1
-    })
+    this.sortChores(chores)
 
     const { completedCount, balance, coinBalance } = this.calculateUserStats(user, chores)
 
@@ -131,13 +125,7 @@ export default class extends Controller {
   generateExtraChoresColumnHTML() {
     let extraChores = StorageService.getChoresForUser('extra-chores', new Date())
 
-    // Sort: Incomplete first, Completed last
-    extraChores.sort((a, b) => {
-      const isACompleted = a.lastCompletedAt === StorageService.getCurrentDateString()
-      const isBCompleted = b.lastCompletedAt === StorageService.getCurrentDateString()
-      if (isACompleted === isBCompleted) return 0
-      return isACompleted ? 1 : -1
-    })
+    this.sortChores(extraChores)
 
     return `
       <div class="min-w-[400px] h-full flex flex-col snap-center">
@@ -240,5 +228,14 @@ export default class extends Controller {
     window.dispatchEvent(new CustomEvent('app:request-coin-redeem', {
       detail: { userId, balance }
     }))
+  }
+
+  sortChores(chores) {
+    chores.sort((a, b) => {
+      const isACompleted = a.lastCompletedAt === StorageService.getCurrentDateString()
+      const isBCompleted = b.lastCompletedAt === StorageService.getCurrentDateString()
+      if (isACompleted === isBCompleted) return 0
+      return isACompleted ? 1 : -1
+    })
   }
 }

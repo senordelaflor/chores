@@ -43,22 +43,24 @@ export default class extends Controller {
   refreshApp() {
     this.refreshBoard()
     this.refreshSettings()
+    this.animateRefreshButton()
+  }
 
-    // Visual feedback (optional but nice)
+  animateRefreshButton() {
     const btn = this.element.querySelector('[data-action="app#refreshApp"]')
-    if (btn) {
-      btn.classList.add('animate-spin')
-      setTimeout(() => btn.classList.remove('animate-spin'), 500)
-    }
+    if (!btn) return
+
+    btn.classList.add('animate-spin')
+    setTimeout(() => btn.classList.remove('animate-spin'), 500)
   }
 
   startDayCheck() {
     this.lastDate = new Date().toLocaleDateString()
+    const ONE_MINUTE_IN_MS = 60000
 
-    // Check every minute
     this.dayCheckInterval = setInterval(() => {
       this.checkDate()
-    }, 60000)
+    }, ONE_MINUTE_IN_MS)
   }
 
   checkDate() {
@@ -66,7 +68,6 @@ export default class extends Controller {
 
     if (currentDate !== this.lastDate) {
       this.lastDate = currentDate
-      console.log('New day detected, refreshing app...')
       this.refreshBoard()
       this.refreshSettings()
     }
